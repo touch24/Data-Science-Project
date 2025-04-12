@@ -202,3 +202,126 @@ print("-" * 80)
 
 
 
+# %% Step 6: Visualize Single Variable Distributions
+print("--- Step 6: Looking at distributions of individual variables ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # Define a reusable helper function for creating count plots
+    def plot_counts(data, column, title, xlabel, ylabel, top_n=None, palette='viridis', order=None, annotate=False, horizontal=False):
+        """Helper to create count plots (bar charts for category frequencies)."""
+        plt.figure(figsize=(16, 8))
+        ax = None
+        counts = data[column].value_counts()
+
+        # Handle ordering and top N selection
+        if top_n: counts = counts.nlargest(top_n)
+        if order is None: order = counts.index
+        else: counts = counts.reindex(order) # Ensure counts match specified order
+
+        # Create horizontal or vertical plot
+        if horizontal:
+            ax = sns.countplot(y=data[data[column].isin(order)][column], order=order, palette=palette, orient='h')
+            ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+            plt.xlabel(xlabel, fontsize=14); plt.ylabel(ylabel, fontsize=14)
+        else:
+            ax = sns.countplot(x=data[column], order=order, palette=palette)
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+            plt.xlabel(xlabel, fontsize=14); plt.ylabel(ylabel, fontsize=14)
+            plt.xticks(rotation=45, ha='right')
+
+        # Add annotations (count numbers on bars)
+        if annotate:
+            for i, count in enumerate(counts):
+                if pd.notna(count): # Avoid annotating NaN counts if order included them
+                    if horizontal:
+                        ax.text(count + (counts.max() * 0.005), i, f'{count: ,}', va='center', ha='left', fontsize=10)
+                    else:
+                        ax.text(i, count + (counts.max() * 0.005), f'{count: ,}', ha='center', va='bottom', fontsize=10)
+
+        plt.title(title, fontsize=20, pad=20, weight='bold')
+        plt.tight_layout()
+        plt.show()
+
+    # --- Plotting Key Distributions ---
+
+    # 1. Crime Categories
+    print("\nPlotting: Distribution of Crime Categories")
+    plot_counts(data=df, column='crime_category_detailed', title='Crime Category Distribution',
+                xlabel='Number of Incidents', ylabel='Crime Category', horizontal=True,
+                top_n=len(df['crime_category_detailed'].unique()), palette='magma', annotate=True)
+    print("Insight: Property, Vehicle, and Violent crimes are most frequent.")
+
+    # 2. LAPD Area Names
+    print("\nPlotting: Crimes by LAPD Area")
+    plot_counts(data=df, column='area_name', title='Crimes by LAPD Area Name',
+                xlabel='Number of Incidents', ylabel='Area Name', horizontal=True,
+                top_n=len(df['area_name'].unique()), palette='Spectral', annotate=True)
+    print("Insight: Central, 77th St, Pacific areas report the most crimes.")
+
+    # 3. Time Segments
+    print("\nPlotting: Crimes by Time Segment")
+    time_order = ['Morning (6-11)', 'Afternoon (12-17)', 'Evening (18-23)', 'Night (0-5)']
+    plot_counts(data=df, column='time_segment', title='Crimes by Time Segment',
+                xlabel='Time Segment', ylabel='Number of Incidents', order=time_order,
+                palette='twilight_shifted', annotate=True)
+    print("Insight: Crime peaks in the Afternoon and Evening.")
+
+    # 4. Day of the Week
+    print("\nPlotting: Crimes by Day of the Week")
+    day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    plot_counts(data=df, column='day_name', title='Crimes by Day of the Week',
+                xlabel='Day of the Week', ylabel='Number of Incidents', order=day_order,
+                palette='rocket', annotate=True)
+    print("Insight: Crime counts are relatively stable across days, peaking slightly on Friday.")
+
+    # 5. Month (Aggregated)
+    print("\nPlotting: Crimes by Month")
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    plot_counts(data=df, column='month_name', title='Crimes by Month (Aggregated)',
+                xlabel='Month', ylabel='Number of Incidents', order=month_order,
+                palette='cubehelix', annotate=True)
+    print("Insight: Some seasonal variation is visible, check yearly trends for confirmation.")
+
+    # 6. Victim Age Distribution
+    print("\nPlotting: Distribution of Victim Age")
+    plt.figure(figsize=(16, 8))
+    ax_age = sns.histplot(df['vict_age'].dropna(), bins=60, kde=True, color='steelblue', edgecolor='black', alpha=0.7)
+    median_age = df['vict_age'].median()
+    mean_age = df['vict_age'].mean()
+    ax_age.axvline(median_age, color='red', linestyle='--', linewidth=2, label=f'Median Age: {median_age:.1f}')
+    ax_age.axvline(mean_age, color='black', linestyle=':', linewidth=2, label=f'Mean Age: {mean_age:.1f}')
+    ax_age.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+    plt.title('Victim Age Distribution (Known Ages)', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Victim Age', fontsize=14); plt.ylabel('Number of Victims', fontsize=14)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+    print(f"Insight: Victim age is right-skewed (median {median_age:.1f}, mean {mean_age:.1f}), peaking in younger adulthood.")
+
+    # 7. Victim Sex
+    print("\nPlotting: Distribution of Victim Sex")
+    plot_counts(data=df.dropna(subset=['vict_sex']), column='vict_sex',
+                title='Victim Sex Distribution (Known)', xlabel='Victim Sex',
+                ylabel='Number of Incidents', palette='coolwarm', annotate=True)
+    print("Insight: Slightly more male victims reported than female.")
+
+    # 8. Victim Descent
+    print("\nPlotting: Distribution of Victim Descent")
+    plot_counts(data=df[df['vict_descent_full'] != 'Unknown'], column='vict_descent_full',
+                title='Victim Descent Distribution (Known, Top 15)', xlabel='Number of Incidents',
+                ylabel='Victim Descent', horizontal=True, top_n=15, palette='tab20', annotate=True)
+    print("Insight: Hispanic/Latin/Mexican, White, and Black are most frequent known descents.")
+
+    # 9. Incident Status
+    print("\nPlotting: Distribution of Incident Status")
+    plot_counts(data=df, column='status_desc', title='Incident Investigation Status',
+                xlabel='Status Description', ylabel='Number of Incidents',
+                palette='crest', annotate=True)
+    print("Insight: Most incidents are 'Investigation Continuing'.")
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("\n--- Step 6 Complete ---")
+print("-" * 80)
