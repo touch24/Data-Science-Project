@@ -545,3 +545,94 @@ print("-" * 80)
 
 
 
+
+
+
+# %% Step 8: Analyze Demographic Patterns vs. Crime/Location
+print("--- Step 8: Analyzing relationships involving victim demographics ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # 1. Plot Victim Age Distribution by Crime Category
+    print("\nPlotting: Victim Age Distribution by Crime Category")
+    plt.figure(figsize=(18, 10))
+    # Calculate median ages for ordering y-axis
+    median_ages = df.groupby('crime_category_detailed', observed=False)['vict_age'].median().sort_values()
+    order_cats = median_ages.index
+    ax_age_cat = sns.boxplot(data=df, x='vict_age', y='crime_category_detailed', order=order_cats,
+                             palette='coolwarm', showfliers=False, orient='h')
+    plt.title('Victim Age Distribution by Crime Category', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Victim Age', fontsize=14); plt.ylabel('Crime Category', fontsize=14)
+    # Add median annotations
+    for i, cat in enumerate(order_cats):
+        median_val = median_ages[cat]
+        if pd.notna(median_val):
+             ax_age_cat.text(median_val*1.02, i, f'Median: {median_val:.0f}', va='center', ha='left',
+                             color='black', fontsize=9, weight='semibold', bbox=dict(fc='white', alpha=0.6, ec='none', pad=0.3))
+    ax_age_cat.xaxis.set_major_formatter(mticker.FormatStrFormatter('%d'))
+    plt.tight_layout(); plt.show()
+    print("Insight: Victim age profiles differ by crime type (e.g., Fraud often has older victims).")
+
+    # 2. Plot Victim Sex Proportion by Crime Category
+    print("\nPlotting: Victim Sex Proportion by Crime Category")
+    sex_crime_counts = df.groupby(['crime_category_detailed', 'vict_sex'], observed=False).size().unstack(fill_value=0)
+    sex_crime_props = sex_crime_counts.apply(lambda x: x*100 / float(x.sum()) if x.sum() > 0 else 0, axis=1) # Avoid division by zero
+    plt.figure(figsize=(18, 10))
+    ax_sex_cat = sex_crime_props[['M', 'F']].plot(kind='barh', stacked=True, colormap='coolwarm', width=0.8)
+    plt.title('Proportion of Victim Sex (M/F) by Crime Category', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Percentage (%)', fontsize=14); plt.ylabel('Crime Category', fontsize=14)
+    plt.legend(title='Victim Sex', loc='center left', bbox_to_anchor=(1.02, 0.5))
+    ax_sex_cat.xaxis.set_major_formatter(mticker.PercentFormatter(xmax=100))
+    plt.xlim(0, 100)
+    plt.tight_layout(rect=[0, 0, 0.85, 1]); plt.show() # Adjust for legend
+    print("Insight: Male/Female victim proportions vary across crime categories.")
+
+    # 3. Plot Victim Descent Distribution for Top Crime Categories
+    print("\nPlotting: Victim Descent for Top 4 Crime Categories")
+    top_crime_cats = df['crime_category_detailed'].value_counts().nlargest(4).index
+    df_top_crime_cats = df[df['crime_category_detailed'].isin(top_crime_cats)].copy() # Use copy for modification
+    # Combine less frequent descents for clarity
+    top_descents = df['vict_descent_full'].value_counts().nlargest(5).index
+    df_top_crime_cats['vict_descent_plot'] = df_top_crime_cats['vict_descent_full'].apply(
+        lambda x: x if x in top_descents or x == 'Unknown' else 'Other Descent'
+    ).astype('category')
+    plt.figure(figsize=(20, 10))
+    descent_order_plot = top_descents.tolist() + ['Other Descent', 'Unknown']
+    category_order_plot = top_crime_cats.tolist() # Use list for countplot order
+    ax_desc_cat = sns.countplot(data=df_top_crime_cats, y='crime_category_detailed', order=category_order_plot,
+                                hue='vict_descent_plot', hue_order=descent_order_plot, palette='tab10')
+    plt.title('Victim Descent Distribution for Top Crime Categories', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Number of Incidents', fontsize=14); plt.ylabel('Crime Category', fontsize=14)
+    plt.legend(title='Victim Descent', bbox_to_anchor=(1.02, 1), loc='upper left')
+    ax_desc_cat.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+    plt.tight_layout(rect=[0, 0, 0.85, 1]); plt.show()
+    print("Insight: Victim descent patterns differ across the most common crime types.")
+
+    # 4. Plot Victim Age Distribution by Top Premise Types
+    print("\nPlotting: Victim Age Distribution by Top 10 Premise Types")
+    top_n_premises = 10
+    top_premises_list = df['premis_desc'].value_counts().nlargest(top_n_premises).index
+    df_top_premises = df[df['premis_desc'].isin(top_premises_list)]
+    # Order by median age
+    median_ages_premise = df_top_premises.groupby('premis_desc')['vict_age'].median().sort_values()
+    premise_order_plot = median_ages_premise.index
+    plt.figure(figsize=(18, 10))
+    ax_age_prem = sns.boxplot(data=df_top_premises, x='vict_age', y='premis_desc', order=premise_order_plot,
+                              palette='Greens_r', showfliers=False, orient='h')
+    plt.title(f'Victim Age Distribution by Top {top_n_premises} Premises', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Victim Age', fontsize=14); plt.ylabel('Premise Description', fontsize=14)
+    # Add median annotations
+    for i, premise in enumerate(premise_order_plot):
+        median_val = median_ages_premise[premise]
+        if pd.notna(median_val):
+             ax_age_prem.text(median_val*1.02, i, f'Median: {median_val:.0f}', va='center', ha='left',
+                              color='black', fontsize=9, weight='semibold', bbox=dict(fc='white', alpha=0.6, ec='none', pad=0.3))
+    ax_age_prem.xaxis.set_major_formatter(mticker.FormatStrFormatter('%d'))
+    plt.tight_layout(); plt.show()
+    print("Insight: Victim age profiles vary depending on the location (premise) of the crime.")
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("\n--- Step 8 Complete ---")
+print("-" * 80)
