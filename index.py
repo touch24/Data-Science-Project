@@ -29,3 +29,33 @@ print("Step 1 Complete.\n" + "-"*80)
 
 # Initialize DataFrame variable
 df = None
+
+
+
+
+
+# %% Refactored Step 2: Load Data & Initial Look
+print("--- Step 2: Load Data & Initial Look ---")
+
+# Load the dataset
+# Assuming FILE_PATH is defined in Step 1 and the file exists
+df_raw = pd.read_csv(FILE_PATH, low_memory=False)
+print(f"Loaded data from: {FILE_PATH}")
+
+# Basic Inspection
+print(f"\nData Shape: {df_raw.shape[0]} rows, {df_raw.shape[1]} columns")
+
+print("\nFirst 5 Rows:")
+print(df_raw.head())
+
+print("\nData Types & Missing Value Info:")
+df_raw.info() # Provides Dtypes and non-null counts
+
+print("\nSummary Statistics:")
+print(df_raw.describe(include='all').T) # Transposed for readability
+
+# Create a working copy for modifications
+df = df_raw.copy()
+print("\nCreated a working copy of the data.")
+
+print("Step 2 Complete.\n" + "-"*80)
