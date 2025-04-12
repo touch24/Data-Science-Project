@@ -890,3 +890,65 @@ else:
 
 print("\n--- Step 10b Complete ---")
 print("-" * 80)
+
+
+
+
+
+
+# %% Step 11: Summary, Conclusions, and Limitations
+print("--- Step 11: Wrapping up with Summary, Conclusions, and Limitations ---")
+
+# This step summarizes the findings from the analysis of the crime data.
+
+print("\n--- I. Quick Summary of Analysis ---")
+# Brief overview of the process followed
+print("1. Loaded and inspected the raw crime data.")
+print("2. Cleaned the data (column names, dates, missing values, placeholders).")
+print("3. Created new features (time components, age groups, crime categories).")
+print("4. Explored data patterns through visualizations (distributions, relationships, specific tangents).")
+print("5. Performed statistical tests to confirm key observations.")
+
+print("\n--- II. Key Findings ---")
+# Highlighting the main insights discovered
+
+print("\n  About Crime Types & Methods:")
+print("  * Property, Vehicle-related, and Violent crimes are the most common.")
+print("  * The most frequent location ('800 N ALAMEDA ST') sees mainly Battery, Petty Theft, and Trespassing.")
+print("  * Physical force ('STRONG-ARM') and Verbal Threats are the most reported 'weapons'.")
+print("  * Known weapons are significantly more common in Violent crimes than Property crimes.")
+
+print("\n  About Time Patterns:")
+print("  * Crime peaks during Afternoon and Evening hours.")
+print("  * Violent crimes make up a higher percentage of incidents during these peak times.")
+print("  * Crime levels are fairly steady across weekdays, often highest on Fridays.")
+print("  * The proportion of crimes on weekends differs statistically from a simple 2/7 split.")
+print("  * Investigation status is significantly related to the time of day.")
+
+print("\n  About Locations:")
+print("  * Crime distribution varies significantly by LAPD Area (Central, 77th St highest).")
+print("  * Streets, Apartments, Homes, and Parking Lots are common crime scenes.")
+
+print("\n  About Victims:")
+print("  * Victim age distribution is skewed towards younger adults (median ~37).")
+print("  * Victim age profiles differ significantly across crime categories and locations.")
+print("  * Slightly more male victims reported overall, but proportions vary by crime type.")
+print("  * Hispanic/Latin/Mexican, White, and Black individuals are the most common known victim descents, with variations across crime types.")
+
+print("\n--- III. Important Limitations ---")
+# Acknowledging the constraints of the analysis
+print("*   Analysis uses *reported* crimes only.")
+print("*   ~25% of victim demographic data was missing.")
+print("*   Keyword-based crime categorization is an approximation.")
+print("*   Weapon/Motive details can be imprecise or missing.")
+print("*   'Status Desc' is a limited proxy for case resolution.")
+print("*   Correlation does not imply causation.")
+print("*   External factors (economy, events, policing) were not included.")
+
+print("\n--- IV. Conclusion ---")
+# Final concluding thoughts
+print("This analysis revealed significant patterns in LA crime regarding when, where, how, and to whom crimes occur, based on reported data from 2020 onwards. Key trends were identified and statistically validated.")
+print("While data limitations exist, the findings offer a valuable snapshot of crime dynamics. Further research could include geospatial analysis, time series modeling, or incorporating external data sources.")
+
+print("\n--- Analysis Complete ---")
+print("-" * 80)
