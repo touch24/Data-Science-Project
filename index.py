@@ -1,4 +1,4 @@
-# %% Refactored Step 1: Setup
+# Step 1: Setup
 print("--- Step 1: Setup ---")
 
 import pandas as pd
@@ -34,7 +34,7 @@ df = None
 
 
 
-# %% Refactored Step 2: Load Data & Initial Look
+# Step 2: Load Data & Initial Look
 print("--- Step 2: Load Data & Initial Look ---")
 
 # Load the dataset
@@ -64,7 +64,7 @@ print("Step 2 Complete.\n" + "-"*80)
 
 
 
-# %% Refactored Step 3: Clean Column Names & Dates/Times
+# Step 3: Clean Column Names & Dates/Times
 print("--- Step 3: Clean Column Names & Dates/Times ---")
 
 # Ensure df exists from Step 2
@@ -106,3 +106,74 @@ else:
     print("Error: DataFrame 'df' not found. Please run previous steps.")
 
 print("Step 3 Complete.\n" + "-"*80)
+
+
+
+
+
+# Step 4: Handle Missing Data & Placeholders
+print("--- Step 4: Handle Missing Data & Placeholders ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    print("Initial missing value counts (columns with >0 missing):")
+    missing_before = df.isnull().sum()
+    print(missing_before[missing_before > 0].sort_values(ascending=False))
+
+    # 1. Clean 'vict_age' (replace <= 0 with NaN)
+    print("\nCleaning victim age...")
+    df['vict_age'] = df['vict_age'].replace(to_replace=[-4, -3, -2, -1, 0], value=np.nan)
+    df['vict_age'] = pd.to_numeric(df['vict_age'], errors='coerce')
+
+    # 2. Clean 'vict_sex' (replace 'X', 'H', '-' with NaN)
+    print("Cleaning victim sex...")
+    df['vict_sex'] = df['vict_sex'].replace(['X', 'H', '-'], np.nan)
+
+    # 3. Clean 'vict_descent' (replace 'X', '-' with NaN)
+    print("Cleaning victim descent...")
+    df['vict_descent'] = df['vict_descent'].replace(['X', '-'], np.nan)
+
+    # 4. Fill missing categorical info with defaults
+    print("Filling missing text/code info...")
+    df['weapon_used_cd'].fillna(999, inplace=True)
+    df['weapon_desc'].fillna('NONE/UNKNOWN', inplace=True)
+    df['premis_cd'].fillna(999, inplace=True)
+    df['premis_desc'].fillna('UNKNOWN', inplace=True)
+    df['mocodes'].fillna('NONE', inplace=True)
+    df['cross_street'].fillna('UNKNOWN', inplace=True)
+
+    # Fill rare missing status with mode
+    if df['status'].isnull().any():
+        status_mode = df['status'].mode()[0]
+        status_desc_mode = df['status_desc'].mode()[0] # Use mode from corresponding desc col
+        df['status'].fillna(status_mode, inplace=True)
+        df['status_desc'].fillna(status_desc_mode, inplace=True)
+
+    # Fill missing secondary crime codes with 0
+    df['crm_cd_1'].fillna(0, inplace=True) # Handle Crm Cd 1 just in case
+    df['crm_cd_2'].fillna(0, inplace=True)
+    df['crm_cd_3'].fillna(0, inplace=True)
+    df['crm_cd_4'].fillna(0, inplace=True)
+
+    # 5. Convert relevant columns to appropriate types
+    print("Converting column types...")
+    df['weapon_used_cd'] = df['weapon_used_cd'].astype('category')
+    df['premis_cd'] = df['premis_cd'].astype('category')
+    df['status'] = df['status'].astype('category')
+    df['crm_cd_1'] = df['crm_cd_1'].astype(int)
+    df['crm_cd_2'] = df['crm_cd_2'].astype(int)
+    df['crm_cd_3'] = df['crm_cd_3'].astype(int)
+    df['crm_cd_4'] = df['crm_cd_4'].astype(int)
+
+    print("\nMissing values AFTER handling (columns with >0 missing):")
+    missing_after = df.isnull().sum()
+    print(missing_after[missing_after > 0].sort_values(ascending=False))
+    print("  (NaNs expected for vict_age, vict_sex, vict_descent)")
+
+    # print("\nFinal data types snippet:") # Optional: uncomment for verification
+    # print(df[['vict_age', 'vict_sex', 'vict_descent', 'weapon_used_cd', 'crm_cd_2']].info())
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("Step 4 Complete.\n" + "-"*80)
