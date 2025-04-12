@@ -59,3 +59,50 @@ df = df_raw.copy()
 print("\nCreated a working copy of the data.")
 
 print("Step 2 Complete.\n" + "-"*80)
+
+
+
+
+
+# %% Refactored Step 3: Clean Column Names & Dates/Times
+print("--- Step 3: Clean Column Names & Dates/Times ---")
+
+# Ensure df exists from Step 2
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # 1. Standardize column names
+    print("Standardizing column names...")
+    df.columns = df.columns.str.lower().str.replace(' ', '_', regex=False).str.replace('-', '_', regex=False)
+    # print("New columns:", df.columns.tolist()) # Optional: uncomment to see new names
+
+    # 2. Convert date columns
+    print("Converting date columns...")
+    df['date_rptd'] = pd.to_datetime(df['date_rptd'], errors='coerce')
+    df['date_occ'] = pd.to_datetime(df['date_occ'], errors='coerce')
+    # Drop rows if 'date_occ' couldn't be parsed (essential column)
+    initial_rows = df.shape[0]
+    df.dropna(subset=['date_occ'], inplace=True)
+    if initial_rows > df.shape[0]:
+        print(f"  Dropped {initial_rows - df.shape[0]} rows with invalid occurrence dates.")
+
+    # 3. Parse time and combine with date
+    print("Parsing time and creating 'datetime_occ'...")
+    # Pad time, parse HHMM, combine with date_occ, coerce errors
+    df['time_occ_str'] = df['time_occ'].astype(int).astype(str).str.zfill(4)
+    time_parsed = pd.to_datetime(df['time_occ_str'], format='%H%M', errors='coerce').dt.time
+    df['datetime_occ'] = pd.to_datetime(df['date_occ'].dt.date.astype(str) + ' ' + time_parsed.astype(str), errors='coerce')
+
+    # Drop rows if combined datetime is invalid
+    initial_rows_dt = df.shape[0]
+    df.dropna(subset=['datetime_occ'], inplace=True)
+    if initial_rows_dt > df.shape[0]:
+         print(f"  Dropped {initial_rows_dt - df.shape[0]} rows with invalid occurrence times.")
+
+    print(f"\nCleaned DataFrame shape: {df.shape}")
+    print("Relevant column types after processing:")
+    print(df[['date_rptd', 'date_occ', 'datetime_occ']].info())
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("Step 3 Complete.\n" + "-"*80)
