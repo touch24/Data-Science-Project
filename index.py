@@ -636,3 +636,90 @@ else:
 
 print("\n--- Step 8 Complete ---")
 print("-" * 80)
+
+
+
+
+
+# %% Step 9: Analyze Weapon Usage Patterns
+print("--- Step 9: Analyzing weapon usage in crimes ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # 1. Plot Distribution of Known Weapon Types
+    print("\nPlotting: Distribution of Top 30 Known Weapons Used")
+    known_weapons_filter = ~df['weapon_desc'].isin(['NONE/UNKNOWN', 'UNKNOWN WEAPON/OTHER WEAPON', 'UNKNOWN'])
+    known_weapons_df = df[known_weapons_filter]
+
+    if not known_weapons_df.empty:
+        plt.figure(figsize=(16, 10))
+        counts_w = known_weapons_df['weapon_desc'].value_counts().nlargest(30)
+        ax_w = sns.countplot(y=known_weapons_df['weapon_desc'], order=counts_w.index, palette='Reds_r')
+        plt.title('Top 30 Known Weapons Used (Excluding None/Unknown)', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Number of Incidents', fontsize=14); plt.ylabel('Weapon Description', fontsize=14)
+        ax_w.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+        # Add annotations
+        for i, count in enumerate(counts_w):
+            ax_w.text(count * 1.005, i, f'{count: ,}', va='center', ha='left', fontsize=9)
+        plt.tight_layout(); plt.show()
+        print("Insight: Physical force ('STRONG-ARM') and Verbal Threats are common; firearms and knives also feature.")
+    else:
+        print("No incidents with known weapons found after filtering.")
+
+    # 2. Plot Weapon Usage Specifically in Violent Crimes
+    print("\nPlotting: Top 30 Weapons Used in Violent Crimes")
+    violent_crimes_df = df[df['crime_category_detailed'] == 'Violent Crime']
+    if not violent_crimes_df.empty:
+        violent_weapons_df = violent_crimes_df[known_weapons_filter] # Apply same filter
+        if not violent_weapons_df.empty:
+            plt.figure(figsize=(16, 10))
+            counts_vw = violent_weapons_df['weapon_desc'].value_counts().nlargest(30)
+            ax_vw = sns.countplot(y=violent_weapons_df['weapon_desc'], order=counts_vw.index, palette='Oranges_r')
+            plt.title('Top 30 Weapons Used in Violent Crimes', fontsize=20, pad=20, weight='bold')
+            plt.xlabel('Number of Violent Incidents', fontsize=14); plt.ylabel('Weapon Description', fontsize=14)
+            ax_vw.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+            # Add annotations
+            for i, count in enumerate(counts_vw):
+                ax_vw.text(count * 1.005, i, f'{count: ,}', va='center', ha='left', fontsize=9)
+            plt.tight_layout(); plt.show()
+            print("Insight: Strong-arm and verbal threats still lead, but firearms/knives are more prominent in violent crimes.")
+        else:
+             print("No known weapons reported within the 'Violent Crime' category.")
+    else:
+        print("No 'Violent Crime' category incidents found.")
+
+    # 3. Plot Comparison of Weapon Presence (Violent vs. Property)
+    print("\nPlotting: Percentage of Crimes with Known Weapon (Violent vs. Property)")
+    df['known_weapon_used'] = known_weapons_filter # Reuse the filter boolean Series
+    comparison_cats = ['Violent Crime', 'Property Crime', 'Vehicle Related - Property']
+    # Calculate percentage where known_weapon_used is True
+    weapon_presence_pct = df[df['crime_category_detailed'].isin(comparison_cats)].groupby(
+        'crime_category_detailed', observed=False)['known_weapon_used'].mean() * 100
+
+    if not weapon_presence_pct.empty:
+        plt.figure(figsize=(10, 6)) # Smaller figure for fewer bars
+        ax_wp = weapon_presence_pct.plot(kind='bar', color=sns.color_palette('Accent', len(weapon_presence_pct)), width=0.6)
+        plt.title('Incidents with a Known Weapon Used (%)', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Crime Category', fontsize=14); plt.ylabel('Percentage (%)', fontsize=14)
+        plt.xticks(rotation=0)
+        ax_wp.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=100))
+        plt.ylim(0, max(weapon_presence_pct.max() * 1.1, 50)) # Adjust ylim dynamically
+        # Add percentage annotations
+        for i, percentage in enumerate(weapon_presence_pct):
+            ax_wp.text(i, percentage + 1, f'{percentage:.1f}%', ha='center', va='bottom', fontsize=11, weight='bold')
+        plt.tight_layout(); plt.show()
+        print("Insight: Violent crimes involve known weapons far more often than property crimes.")
+    else:
+        print("Could not calculate weapon presence comparison.")
+
+    # Clean up temporary column
+    if 'known_weapon_used' in df.columns:
+        df.drop(columns=['known_weapon_used'], inplace=True)
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("\n--- Step 9 Complete ---")
+print("-" * 80)
+
+
