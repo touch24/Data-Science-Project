@@ -418,3 +418,130 @@ else:
 
 print("\n--- Step 7 Complete ---")
 print("-" * 80)
+
+
+
+# %% Step 7b: Explore Specific Patterns (Curiosity Tangents)
+print("--- Step 7b: Exploring specific crime patterns ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # --- Tangent 1: Bike Theft Analysis ---
+    print("\nAnalyzing: Bike Theft Patterns (Where, When, Who)")
+    # Filter data for bike thefts
+    bike_thefts = df[df['crm_cd_desc'].str.contains('BIKE - STOLEN', case=False, na=False)].copy()
+
+    if not bike_thefts.empty:
+        print(f"Found {len(bike_thefts):,} bike theft incidents.")
+
+        # A. Bike Theft Premises
+        print("Plotting: Top premises for bike thefts")
+        plt.figure(figsize=(16, 8))
+        ax_bike_p = sns.countplot(y=bike_thefts['premis_desc'], order=bike_thefts['premis_desc'].value_counts().nlargest(20).index, palette='viridis_r')
+        plt.title('Top 20 Premises for Bike Thefts', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Number of Thefts', fontsize=14); plt.ylabel('Premise Description', fontsize=14)
+        ax_bike_p.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+        # Add annotations
+        counts_p = bike_thefts['premis_desc'].value_counts().nlargest(20)
+        for i, count in enumerate(counts_p): ax_bike_p.text(count*1.01, i, f'{count: ,}', va='center', ha='left', fontsize=10)
+        plt.tight_layout(); plt.show()
+        print("Insight: Streets, Apartments, Homes, and Garages are common bike theft locations.")
+
+        # B. Bike Theft Time Segments
+        print("Plotting: Bike thefts by time segment")
+        plt.figure(figsize=(12, 6))
+        time_order = ['Morning (6-11)', 'Afternoon (12-17)', 'Evening (18-23)', 'Night (0-5)']
+        ax_bike_t = sns.countplot(x=bike_thefts['time_segment'], order=time_order, palette='coolwarm')
+        plt.title('Bike Thefts by Time Segment', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Time Segment', fontsize=14); plt.ylabel('Number of Thefts', fontsize=14)
+        plt.xticks(rotation=0)
+        ax_bike_t.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+        # Add annotations
+        counts_t = bike_thefts['time_segment'].value_counts().reindex(time_order)
+        for i, count in enumerate(counts_t):
+            if pd.notna(count): ax_bike_t.text(i, count*1.01, f'{count: ,}', ha='center', va='bottom', fontsize=10)
+        plt.tight_layout(); plt.show()
+        print("Insight: Bike thefts occur most often in Afternoon/Evening, but also notably overnight.")
+
+        # C. Bike Theft Victim Age Groups
+        print("Plotting: Bike theft victims by age group")
+        plt.figure(figsize=(14, 7))
+        # Use existing category order if available
+        age_order = bike_thefts['vict_age_group'].cat.categories if hasattr(bike_thefts['vict_age_group'], 'cat') else None
+        ax_bike_a = sns.countplot(x=bike_thefts['vict_age_group'], order=age_order, palette='Spectral')
+        plt.title('Victim Age Groups for Bike Thefts', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Victim Age Group', fontsize=14); plt.ylabel('Number of Victims', fontsize=14)
+        plt.xticks(rotation=45, ha='right')
+        ax_bike_a.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+        # Add annotations
+        counts_a = bike_thefts['vict_age_group'].value_counts().reindex(age_order)
+        for i, count in enumerate(counts_a):
+            if pd.notna(count): ax_bike_a.text(i, count*1.01, f'{count: ,}', ha='center', va='bottom', fontsize=10)
+        plt.tight_layout(); plt.show()
+        print("Insight: Young Adults (18-25) and the 26-35 group are most frequently victims.")
+
+    else:
+        print("No 'BIKE - STOLEN' incidents found.")
+    print("-" * 50)
+
+    # --- Tangent 2: Profile of Most Frequent Crime Location ---
+    print("\nAnalyzing: Crime Profile of the Most Frequent Location")
+    # Normalize location strings to find the mode accurately
+    df['location_normalized'] = df['location'].str.strip().str.upper()
+    most_frequent_loc = df['location_normalized'].mode()[0]
+    loc_freq = df['location_normalized'].value_counts().max() # Get frequency of the mode
+    print(f"Most frequent location: '{most_frequent_loc}' ({loc_freq:,} incidents).")
+
+    loc_crimes = df[df['location_normalized'] == most_frequent_loc].copy()
+
+    if not loc_crimes.empty:
+        # A. Common Crimes at this Location
+        print("Plotting: Top crimes at this location")
+        plt.figure(figsize=(16, 8))
+        ax_loc_c = sns.countplot(y=loc_crimes['crm_cd_desc'], order=loc_crimes['crm_cd_desc'].value_counts().nlargest(20).index, palette='magma_r')
+        plt.title(f'Top 20 Crimes at: {most_frequent_loc}', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Number of Incidents', fontsize=14); plt.ylabel('Crime Description', fontsize=14)
+        ax_loc_c.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+        # Add annotations
+        counts_lc = loc_crimes['crm_cd_desc'].value_counts().nlargest(20)
+        for i, count in enumerate(counts_lc): ax_loc_c.text(count*1.01, i, f'{count: ,}', va='center', ha='left', fontsize=10)
+        plt.tight_layout(); plt.show()
+        print("Insight: Dominated by Battery, Petty Theft, Trespassing - likely a high-traffic public/commercial area.")
+
+        # B. Premise at this Location
+        premise_at_loc = loc_crimes['premis_desc'].mode()[0]
+        print(f"\nMost common premise: '{premise_at_loc}'.")
+        # print(f"  Top 5 premises:\n{loc_crimes['premis_desc'].value_counts().head()}") # Optional detail
+
+        # C. Time Profile at this Location
+        print("Plotting: Crime times at this location")
+        plt.figure(figsize=(12, 6))
+        time_order_loc = ['Morning (6-11)', 'Afternoon (12-17)', 'Evening (18-23)', 'Night (0-5)']
+        ax_loc_t = sns.countplot(x=loc_crimes['time_segment'], order=time_order_loc, palette='Blues_r')
+        plt.title(f'Crimes by Time Segment at {most_frequent_loc}', fontsize=20, pad=20, weight='bold')
+        plt.xlabel('Time Segment', fontsize=14); plt.ylabel('Number of Incidents', fontsize=14)
+        plt.xticks(rotation=0)
+        ax_loc_t.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+        # Add annotations
+        counts_lt = loc_crimes['time_segment'].value_counts().reindex(time_order_loc)
+        for i, count in enumerate(counts_lt):
+            if pd.notna(count): ax_loc_t.text(i, count*1.01, f'{count: ,}', ha='center', va='bottom', fontsize=10)
+        plt.tight_layout(); plt.show()
+        print("Insight: Crimes peak strongly during Afternoon hours at this location.")
+
+    else:
+        print(f"No incidents found for location '{most_frequent_loc}'.")
+
+    # Clean up temporary column
+    if 'location_normalized' in df.columns:
+        df.drop(columns=['location_normalized'], inplace=True)
+    print("\nLocation analysis complete.")
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("\n--- Step 7b Complete ---")
+print("-" * 80)
+
+
+
