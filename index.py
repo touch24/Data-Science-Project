@@ -723,3 +723,87 @@ print("\n--- Step 9 Complete ---")
 print("-" * 80)
 
 
+
+
+
+
+
+# %% Step 10: Statistical Analysis & Hypothesis Testing
+print("--- Step 10: Testing observed patterns statistically ---")
+
+# Ensure necessary variables and libraries are available
+if 'df' in locals() and isinstance(df, pd.DataFrame) and 'stats' in locals() and 'ALPHA' in locals():
+
+    # Helper function to print test results clearly
+    def print_test_results(test_name, statistic, p_value, alpha=ALPHA):
+        print(f"\n--- {test_name} Results ---")
+        print(f"Statistic: {statistic:.4f}")
+        print(f"P-value: {p_value:.4g}") # Use general format for p-value
+        significant = p_value < alpha
+        conclusion = "IS statistically significant" if significant else "is NOT statistically significant"
+        print(f"Conclusion (alpha={alpha}): Result {conclusion} (p={p_value:.4g}).")
+        print("-" * (len(test_name) + 12))
+        return significant
+
+    print(f"Using significance level alpha = {ALPHA}")
+
+    # Hypothesis 1: Association between Crime Status and Time Segment
+    print("\nTesting: Is crime status related to time segment?")
+    status_time_contingency = pd.crosstab(df['status_desc'], df['time_segment'])
+    # print("Contingency Table:\n", status_time_contingency) # Optional: view table
+    try:
+        chi2, p, dof, expected = stats.chi2_contingency(status_time_contingency)
+        sig_h1 = print_test_results("Chi-Squared (Status vs Time Segment)", chi2, p)
+        if sig_h1: print("Interpretation: Yes, investigation status significantly varies by time of day.")
+    except ValueError as e: print(f"Chi-Squared test failed: {e}")
+
+    # Hypothesis 2: Association between Violent Crime Proportion and Time Segment
+    print("\nTesting: Does the proportion of violent crime vary by time segment?")
+    df['is_violent'] = (df['crime_category_detailed'] == 'Violent Crime')
+    severity_time_contingency = pd.crosstab(df['is_violent'], df['time_segment'])
+    severity_time_contingency.index = ['Non-Violent/Other', 'Violent Crime']
+    # print("Contingency Table:\n", severity_time_contingency) # Optional: view table
+    try:
+        chi2_sev, p_sev, dof_sev, expected_sev = stats.chi2_contingency(severity_time_contingency)
+        sig_h2 = print_test_results("Chi-Squared (Violent vs Time Segment)", chi2_sev, p_sev)
+        if sig_h2:
+            proportions = severity_time_contingency.apply(lambda x: x*100 / float(x.sum()) if x.sum() > 0 else 0, axis=0)
+            print("Proportion Violent (%):\n", proportions.loc['Violent Crime'].round(1))
+            print("Interpretation: Yes, the likelihood of a crime being violent significantly varies by time of day.")
+    except ValueError as e: print(f"Chi-Squared test failed: {e}")
+    if 'is_violent' in df.columns: df.drop(columns=['is_violent'], inplace=True) # Clean up
+
+    # Hypothesis 3: Difference in Victim Age across Top Crime Categories
+    print("\nTesting: Does victim age differ across top crime categories?")
+    categories_for_age_test = df['crime_category_detailed'].value_counts().nlargest(5).index.tolist()
+    print(f"Comparing categories: {categories_for_age_test}")
+    age_data_by_category = [df['vict_age'][df['crime_category_detailed'] == cat].dropna() for cat in categories_for_age_test]
+    valid_age_groups = [group for group in age_data_by_category if len(group) > 1]
+    valid_categories = [cat for cat, group in zip(categories_for_age_test, age_data_by_category) if len(group) > 1]
+
+    if len(valid_age_groups) >= 2:
+        # Check normality briefly (as Kruskal-Wallis is likely needed anyway)
+        normality_check_p_values = [stats.shapiro(g.sample(min(len(g), 4999), random_state=1))[1] for g in valid_age_groups if len(g)>3]
+        all_normal = all(p >= ALPHA for p in normality_check_p_values) if normality_check_p_values else False
+        print(f"Normality Check Passed for All Groups? {'Yes' if all_normal else 'No'}")
+
+        if all_normal: # Use ANOVA if assumptions met
+            print("Performing ANOVA (Comparing Mean Ages)...")
+            stat_anova, p_anova = stats.f_oneway(*valid_age_groups)
+            sig_h3 = print_test_results(f"ANOVA (Age across {len(valid_categories)} cats)", stat_anova, p_anova)
+            if sig_h3: print("Interpretation: Yes, mean victim age significantly differs between categories.")
+        else: # Use Kruskal-Wallis if normality fails
+             print("Performing Kruskal-Wallis Test (Comparing Median Ages)...")
+             stat_kw, p_kw = stats.kruskal(*valid_age_groups)
+             sig_h3 = print_test_results(f"Kruskal-Wallis (Age across {len(valid_categories)} cats)", stat_kw, p_kw)
+             if sig_h3:
+                 print("Interpretation: Yes, median victim age significantly differs between categories.")
+                 print("Median Ages:", {cat: f"{group.median():.1f}" for cat, group in zip(valid_categories, valid_age_groups)})
+    else:
+        print("Not enough groups with age data to perform comparison.")
+
+else:
+    print("Error: DataFrame 'df' or required libraries not found. Please run previous steps.")
+
+print("\n--- Step 10 Complete ---")
+print("-" * 80)
