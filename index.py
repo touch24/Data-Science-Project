@@ -325,3 +325,96 @@ else:
 
 print("\n--- Step 6 Complete ---")
 print("-" * 80)
+
+
+
+
+
+# %% Step 7: Analyze Time Patterns vs. Crime Types
+print("--- Step 7: Analyzing relationships between time and crime types ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # 1. Plot Crime Categories by Time Segment (Stacked Bar)
+    print("\nPlotting: Crime Categories by Time Segment")
+    crime_time_counts = df.groupby(['time_segment', 'crime_category_detailed'], observed=False).size().unstack(fill_value=0)
+    plt.figure(figsize=(18, 10))
+    ax_ts = crime_time_counts.plot(kind='bar', stacked=True, colormap='tab20', width=0.8)
+    plt.title('Crime Categories Across Time Segments', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Time Segment', fontsize=14); plt.ylabel('Number of Incidents', fontsize=14)
+    plt.xticks(rotation=0)
+    plt.legend(title='Crime Category', bbox_to_anchor=(1.02, 1), loc='upper left')
+    ax_ts.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+    # Add total annotations
+    totals_ts = crime_time_counts.sum(axis=1)
+    for i, total in enumerate(totals_ts):
+        ax_ts.text(i, total * 1.01, f'{total: ,}', ha='center', va='bottom', fontsize=10, weight='bold')
+    plt.tight_layout(rect=[0, 0, 0.85, 1])
+    plt.show()
+    print("Insight: Violent crimes appear proportionally higher during Evening/Afternoon.")
+
+    # 2. Plot Crime Categories by Day of Week (Grouped Bar)
+    print("\nPlotting: Crime Categories by Day of Week")
+    crime_day_counts = df.groupby(['day_name', 'crime_category_detailed'], observed=False).size().unstack(fill_value=0)
+    day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    crime_day_counts = crime_day_counts.reindex(day_order)
+    plt.figure(figsize=(20, 10))
+    ax_day = crime_day_counts.plot(kind='bar', colormap='tab20', width=0.85)
+    plt.title('Crime Categories Across Days of the Week', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Day of the Week', fontsize=14); plt.ylabel('Number of Incidents', fontsize=14)
+    plt.xticks(rotation=45, ha='right')
+    plt.legend(title='Crime Category', bbox_to_anchor=(1.02, 1), loc='upper left')
+    ax_day.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+    plt.tight_layout(rect=[0, 0, 0.85, 1])
+    plt.show()
+    print("Insight: Daily patterns are relatively stable for major categories; slight weekend variations possible.")
+
+    # 3. Plot Heatmap of Top Crimes by Hour and Day
+    print("\nPlotting: Heatmap of Top Crimes by Hour and Day")
+    top_n_crimes = 15
+    top_crime_list = df['crm_cd_desc'].value_counts().nlargest(top_n_crimes).index
+    df_top_crimes = df[df['crm_cd_desc'].isin(top_crime_list)]
+    heatmap_data = pd.pivot_table(df_top_crimes, values='dr_no', index='hour', columns='day_name', aggfunc='count', fill_value=0)
+    heatmap_data = heatmap_data.reindex(columns=day_order) # Use same day order
+    plt.figure(figsize=(14, 10))
+    sns.heatmap(heatmap_data, cmap="viridis", linewidths=.5, linecolor='lightgrey')
+    plt.title(f'Heatmap of Top {top_n_crimes} Crimes by Hour and Day', fontsize=20, pad=20, weight='bold')
+    plt.xlabel('Day of Week', fontsize=14); plt.ylabel('Hour of Day (0-23)', fontsize=14)
+    plt.yticks(rotation=0); plt.xticks(rotation=0)
+    plt.tight_layout()
+    plt.show()
+    print("Insight: Heatmap shows crime concentration in afternoon/evening hours.")
+
+    # 4. Analyze Crimes involving "VERBAL THREATS"
+    print("\nAnalyzing: Crimes associated with 'VERBAL THREATS'")
+    verbal_threat_crimes = df[df['weapon_desc'].str.contains('VERBAL THREAT', case=False, na=False)]
+    if not verbal_threat_crimes.empty:
+        print(f"Found {len(verbal_threat_crimes):,} incidents involving 'VERBAL THREATS'.")
+        # Re-use plotting helper if it's defined globally or re-define briefly
+        def plot_counts_simple_h(data, column, title, xlabel, ylabel, top_n=25, palette='viridis', annotate=True):
+             plt.figure(figsize=(16, 10)) # Adjust size for this plot
+             counts = data[column].value_counts().nlargest(top_n)
+             order = counts.index
+             ax = sns.countplot(y=data[data[column].isin(order)][column], order=order, palette=palette, orient='h')
+             ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+             if annotate:
+                 for i, count in enumerate(counts): ax.text(count + (counts.max() * 0.005), i, f'{count: ,}', va='center', ha='left', fontsize=10)
+             plt.title(title, fontsize=20, pad=20, weight='bold')
+             plt.xlabel(xlabel, fontsize=14); plt.ylabel(ylabel, fontsize=14)
+             plt.tight_layout(); plt.show()
+
+        plot_counts_simple_h(
+            data=verbal_threat_crimes, column='crm_cd_desc',
+            title='Top Crime Descriptions Where Weapon Was "VERBAL THREATS"',
+            xlabel='Number of Incidents', ylabel='Crime Description',
+            top_n=25, palette='coolwarm_r', annotate=True
+        )
+        print("Insight: Verbal threats commonly occur alongside Criminal Threats, Assaults, and Restraining Order Violations.")
+    else:
+        print("No incidents found specifically listing 'VERBAL THREATS' as weapon.")
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("\n--- Step 7 Complete ---")
+print("-" * 80)
