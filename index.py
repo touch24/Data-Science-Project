@@ -807,3 +807,86 @@ else:
 
 print("\n--- Step 10 Complete ---")
 print("-" * 80)
+
+
+
+
+
+# %% Step 10b: Supplementary Statistical Analysis & Distributions
+print("--- Step 10b: Exploring more statistical tests and distributions ---")
+
+# Ensure necessary variables and libraries are available
+if 'df' in locals() and isinstance(df, pd.DataFrame) and 'stats' in locals() and 'ALPHA' in locals():
+
+    # Re-define helper if needed (or ensure it's available from Step 10)
+    def print_test_results(test_name, statistic, p_value, alpha=ALPHA):
+        print(f"\n--- {test_name} Results ---")
+        print(f"Statistic: {statistic:.4f}")
+        print(f"P-value: {p_value:.4g}")
+        significant = p_value < alpha
+        conclusion = "IS statistically significant" if significant else "is NOT statistically significant"
+        print(f"Conclusion (alpha={alpha}): Result {conclusion} (p={p_value:.4g}).")
+        print("-" * (len(test_name) + 12))
+        return significant
+
+    print(f"Running supplementary tests with alpha = {ALPHA}")
+
+    # 1. Example: t-test for Victim Age (Violent vs. Property)
+    # Note: Performed for demonstration; assumptions were likely violated.
+    print("\nExample: Comparing mean victim age (Violent vs Property) using t-test")
+    age_violent = df['vict_age'][df['crime_category_detailed'] == 'Violent Crime'].dropna()
+    age_property = df['vict_age'][df['crime_category_detailed'] == 'Property Crime'].dropna()
+    if len(age_violent) > 1 and len(age_property) > 1:
+        print("Reminder: Normality assumption likely failed; Mann-Whitney U preferred.")
+        stat_levene, p_levene = stats.levene(age_violent, age_property)
+        equal_var_ttest = p_levene >= ALPHA # Check equal variance for t-test type
+        stat_tt, p_tt = stats.ttest_ind(age_violent, age_property, equal_var=equal_var_ttest)
+        sig_tt = print_test_results(f"t-Test (Age: Violent vs Property)", stat_tt, p_tt)
+        if sig_tt: print(f"  Mean Ages - Violent: {age_violent.mean():.1f}, Property: {age_property.mean():.1f}")
+    else: print("  Not enough data for t-test comparison.")
+
+    # 2. Example: Binomial Test for Weekend Crime Proportion
+    print("\nExample: Testing if weekend crime proportion equals 2/7")
+    n_total = len(df)
+    n_weekend = df['is_weekend'].sum()
+    hypothesized_prop = 2/7
+    observed_prop = n_weekend / n_total
+    print(f"Observed weekend proportion: {observed_prop:.3f} ({n_weekend:,}/{n_total:,})")
+    binom_result = stats.binomtest(k=n_weekend, n=n_total, p=hypothesized_prop, alternative='two-sided')
+    sig_binom = print_test_results(f"Binomial Test (Weekend vs {hypothesized_prop:.3f})", observed_prop, binom_result.pvalue)
+    if sig_binom: print(f"Interpretation: The proportion of weekend crimes ({observed_prop:.3f}) significantly differs from 2/7.")
+
+    # 3. Visualize Victim Age vs. Normal Distribution
+    print("\nVisualizing: Victim Age distribution vs. Normal distribution")
+    plt.figure(figsize=(14, 7))
+    ax_norm = sns.histplot(df['vict_age'].dropna(), bins=60, kde=True, stat='density', color='skyblue', label='Observed Age')
+    mean_age, std_age = df['vict_age'].mean(), df['vict_age'].std()
+    x_norm = np.linspace(df['vict_age'].min(), df['vict_age'].max(), 200)
+    y_norm = stats.norm.pdf(x_norm, mean_age, std_age)
+    plt.plot(x_norm, y_norm, color='red', linestyle='--', linewidth=2, label=f'Normal Fit')
+    plt.title('Victim Age Distribution vs. Theoretical Normal', fontsize=18, pad=15)
+    plt.xlabel('Victim Age', fontsize=14); plt.ylabel('Density', fontsize=14)
+    plt.legend(); plt.tight_layout(); plt.show()
+    print("Insight: Age distribution is clearly right-skewed, not normally distributed.")
+
+    # 4. Visualize Hourly Crime Counts vs. Poisson Distribution (Conceptual Comparison)
+    # Note: Crime counts rarely follow a simple Poisson due to non-constant rates.
+    print("\nVisualizing: Hourly crime counts vs. Poisson distribution shape")
+    hourly_counts = df['hour'].value_counts().sort_index()
+    mean_hourly_rate = hourly_counts.mean()
+    plt.figure(figsize=(14, 7))
+    plt.plot(hourly_counts.index, hourly_counts.values, marker='o', linestyle='-', color='blue', label='Observed Hourly Counts')
+    # Generate Poisson PMF and scale for visual comparison
+    poisson_pmf = stats.poisson.pmf(k=hourly_counts.index, mu=mean_hourly_rate)
+    scaling_factor = len(df) # Rough scaling
+    plt.plot(hourly_counts.index, poisson_pmf * scaling_factor, color='orange', linestyle='--', label=f'Poisson Shape (λ≈{mean_hourly_rate:.1f})')
+    plt.title('Observed Hourly Counts vs. Scaled Poisson Shape', fontsize=18, pad=15)
+    plt.xlabel('Hour of Day (0-23)', fontsize=14); plt.ylabel('Counts / Scaled Probability', fontsize=14)
+    plt.xticks(range(0, 24)); plt.legend(); plt.grid(True, axis='y', linestyle=':'); plt.tight_layout(); plt.show()
+    print("Insight: Hourly counts show strong daily patterns (diurnal cycle), unlike a simple Poisson distribution.")
+
+else:
+    print("Error: DataFrame 'df' or required libraries not found. Please run previous steps.")
+
+print("\n--- Step 10b Complete ---")
+print("-" * 80)
