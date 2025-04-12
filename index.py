@@ -177,3 +177,71 @@ else:
     print("Error: DataFrame 'df' not found. Please run previous steps.")
 
 print("Step 4 Complete.\n" + "-"*80)
+
+
+
+
+
+# Step 5: Create New Features
+print("--- Step 5: Create New Features ---")
+
+if 'df' in locals() and isinstance(df, pd.DataFrame):
+
+    # 1. Extract Time Features
+    print("Extracting time features...")
+    df['year'] = df['datetime_occ'].dt.year
+    df['month'] = df['datetime_occ'].dt.month
+    df['hour'] = df['datetime_occ'].dt.hour
+    df['day_of_week'] = df['datetime_occ'].dt.dayofweek # Monday=0
+    df['day_name'] = df['datetime_occ'].dt.day_name()
+    df['month_name'] = df['datetime_occ'].dt.month_name()
+    # Add others if essential, e.g., df['minute'] = df['datetime_occ'].dt.minute
+
+    # 2. Create Time Categories
+    print("Creating time categories...")
+    time_bins = [-1, 6, 12, 18, 24]
+    time_labels = ['Night (0-5)', 'Morning (6-11)', 'Afternoon (12-17)', 'Evening (18-23)']
+    df['time_segment'] = pd.cut(df['hour'], bins=time_bins, labels=time_labels, right=False, ordered=True)
+    df['is_weekend'] = df['day_of_week'].isin([5, 6]) # Saturday=5, Sunday=6
+
+    # 3. Create Age Groups
+    print("Creating age groups...")
+    age_bins = [-np.inf, 17, 25, 35, 45, 55, 65, np.inf]
+    age_labels = ['0-17 (Minor)', '18-25', '26-35', '36-45', '46-55', '56-65', '66+ (Senior)']
+    df['vict_age_group'] = pd.cut(df['vict_age'], bins=age_bins, labels=age_labels, right=True, ordered=True)
+    # print("Age Group Counts:\n", df['vict_age_group'].value_counts(dropna=False).sort_index()) # Optional print
+
+    # 4. Create Detailed Crime Categories (using simplified function)
+    print("Creating crime categories...")
+    def classify_crime_simple(description):
+        desc_upper = str(description).upper()
+        # Simplified logic - prioritize more specific or severe categories
+        if any(k in desc_upper for k in ['ASSAULT', 'ROBBERY', 'HOMICIDE', 'BATTERY', 'ADW', 'RAPE', 'THREATS']): return 'Violent'
+        if any(k in desc_upper for k in ['VEHICLE', 'AUTO', 'BIKE']): return 'Vehicle'
+        if any(k in desc_upper for k in ['BURGLARY', 'THEFT', 'STOLEN', 'VANDALISM', 'SHOPLIFTING']): return 'Property'
+        if any(k in desc_upper for k in ['FRAUD', 'FORGERY', 'CREDIT']): return 'Fraud'
+        if any(k in desc_upper for k in ['DRUNK', 'NARCOTICS', 'DRUGS', 'PROSTITUTION']): return 'Public Order/Vice'
+        return 'Other/Misc' # Catch-all
+
+    df['crime_category'] = df['crm_cd_desc'].apply(classify_crime_simple).astype('category')
+    # print("Crime Category Counts:\n", df['crime_category'].value_counts()) # Optional print
+
+    # 5. Map Victim Descent Codes
+    print("Mapping victim descent codes...")
+    descent_map = {
+        'A': 'Other Asian', 'B': 'Black', 'C': 'Chinese', 'D': 'Cambodian', 'F': 'Filipino',
+        'G': 'Guamanian', 'H': 'Hispanic/Latin/Mexican', 'I': 'Am. Indian/Alaskan', 'J': 'Japanese',
+        'K': 'Korean', 'L': 'Laotian', 'O': 'Other', 'P': 'Pacific Islander', 'S': 'Samoan',
+        'U': 'Hawaiian', 'V': 'Vietnamese', 'W': 'White', 'Z': 'Asian Indian'
+    }
+    df['vict_descent_full'] = df['vict_descent'].map(descent_map).fillna('Unknown').astype('category')
+
+    print("\nExample rows with new features:")
+    print(df[['datetime_occ', 'hour', 'time_segment', 'is_weekend', 'vict_age_group', 'crime_category', 'vict_descent_full']].head())
+
+    print(f"\nDataFrame shape after adding features: {df.shape}")
+
+else:
+    print("Error: DataFrame 'df' not found. Please run previous steps.")
+
+print("Step 5 Complete.\n" + "-"*80)
